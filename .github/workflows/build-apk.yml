@@ -1,0 +1,60 @@
+name: Build NH Tool APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Restore web app assets
+        shell: bash
+        run: |
+          set -euxo pipefail
+          mkdir -p app/src/main/assets/www/static
+          base64 -d payload/index.html.gz.b64 | gunzip > app/src/main/assets/www/index.html
+          base64 -d payload/app.js.gz.b64 | gunzip > app/src/main/assets/www/static/app.js
+          base64 -d payload/style.css.gz.b64 | gunzip > app/src/main/assets/www/static/style.css
+          cat > app/src/main/assets/www/static/logo.svg <<'SVG'
+          <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 108 108">
+            <path fill="#0D1C33" d="M54 4 98 29v50L54 104 10 79V29Z"/>
+            <path fill="#23E4CF" d="M54 15 87 34v38L54 91 21 72V34Z"/>
+            <path fill="#0D1C33" d="M30 36h10l14 22V36h10v36H54L40 50v22H30Zm36 0h10v13h8V36h10v36H84V59h-8v13H66Z"/>
+          </svg>
+          SVG
+          grep -q "NH Tool" app/src/main/assets/www/index.html
+          test -s app/src/main/assets/www/static/app.js
+          test -s app/src/main/assets/www/static/style.css
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android SDK packages
+        run: sdkmanager "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Build release APK
+        run: gradle :app:assembleRelease --stacktrace
+
+      - name: Upload unsigned APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NHTool-release-unsigned
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          if-no-files-found: error
