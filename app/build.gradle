@@ -7,11 +7,11 @@ android {
     compileSdk 35
 
     defaultConfig {
-        applicationId 'com.nhtool.app'
+        applicationId 'com.nhtool.stable'
         minSdk 21
         targetSdk 35
-        versionCode 106
-        versionName '1.0.6'
+        versionCode 200
+        versionName '2.0.0'
     }
 
     buildTypes {
