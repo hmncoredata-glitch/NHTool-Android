@@ -21,6 +21,39 @@ jobs:
           base64 -d payload/index.html.gz.b64 | gunzip > app/src/main/assets/www/index.html
           base64 -d payload/app.js.gz.b64 | gunzip > app/src/main/assets/www/static/app.js
           base64 -d payload/style.css.gz.b64 | gunzip > app/src/main/assets/www/static/style.css
+          cat >> app/src/main/assets/www/static/style.css <<'CSS'
+
+          /* Android mobile bottom navigation clarity fix */
+          @media(max-width:900px){
+            .bottom-nav{
+              background:#ffffff;
+              border-top:1px solid #d7e0ea;
+              box-shadow:0 -8px 24px rgba(20,45,80,.10);
+            }
+            .bottom-nav .nav-item{
+              color:#5b6b80 !important;
+              background:#ffffff !important;
+              font-weight:650;
+              opacity:1 !important;
+            }
+            .bottom-nav .nav-item:hover{
+              color:#0b6bdb !important;
+              background:#f3f8ff !important;
+            }
+            .bottom-nav .nav-item.active{
+              color:#0b6bdb !important;
+              background:#e8f2ff !important;
+              font-weight:800;
+            }
+            .bottom-nav .nav-item span{
+              color:inherit !important;
+              opacity:1 !important;
+            }
+            .bottom-nav .nav-item span:first-child{
+              color:inherit !important;
+            }
+          }
+          CSS
           cat > app/src/main/assets/www/static/logo.svg <<'SVG'
           <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 108 108">
             <path fill="#0D1C33" d="M54 4 98 29v50L54 104 10 79V29Z"/>
@@ -64,6 +97,6 @@ jobs:
       - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: NHTool-v1.0.3-installable
+          name: NHTool-v1.0.4-installable
           path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
