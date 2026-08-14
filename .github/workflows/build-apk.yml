@@ -66,7 +66,7 @@ jobs:
 
           cat >> app/src/main/assets/www/static/app.js <<'JS'
 
-          /* Android v1.0.5 runtime fixes */
+          /* Android v1.0.6 runtime fixes */
           const __nhBaseDailyColumnDefs = dailyColumnDefs;
           dailyColumnDefs = function(){
             const defs = __nhBaseDailyColumnDefs();
@@ -156,20 +156,21 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build unsigned release APK
-        run: gradle :app:assembleRelease --stacktrace
+      - name: Build signed debug APK
+        run: gradle :app:assembleDebug --stacktrace
 
-      - name: Verify APK structure
+      - name: Verify signed APK
         shell: bash
         run: |
           set -euxo pipefail
-          APK=app/build/outputs/apk/release/app-release-unsigned.apk
+          APK=app/build/outputs/apk/debug/app-debug.apk
           test -s "$APK"
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -30
 
-      - name: Upload unsigned APK
+      - name: Upload installable APK
         uses: actions/upload-artifact@v4
         with:
-          name: NHTool-v1.0.5-unsigned
-          path: app/build/outputs/apk/release/app-release-unsigned.apk
+          name: NHTool-v1.0.6-installable
+          path: app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
