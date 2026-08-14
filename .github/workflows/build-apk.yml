@@ -21,9 +21,10 @@ jobs:
           base64 -d payload/index.html.gz.b64 | gunzip > app/src/main/assets/www/index.html
           base64 -d payload/app.js.gz.b64 | gunzip > app/src/main/assets/www/static/app.js
           base64 -d payload/style.css.gz.b64 | gunzip > app/src/main/assets/www/static/style.css
+
           cat >> app/src/main/assets/www/static/style.css <<'CSS'
 
-          /* Android mobile bottom navigation clarity fix */
+          /* Android mobile bottom navigation + report readability */
           @media(max-width:900px){
             .bottom-nav{
               background:#ffffff;
@@ -49,11 +50,84 @@ jobs:
               color:inherit !important;
               opacity:1 !important;
             }
-            .bottom-nav .nav-item span:first-child{
-              color:inherit !important;
-            }
           }
+          .daily-bill .bill-table,.daily-bill .premium-table{
+            width:100% !important;
+            table-layout:auto !important;
+          }
+          .daily-bill .bill-table th,.daily-bill .bill-table td{
+            white-space:normal !important;
+            overflow-wrap:anywhere !important;
+            word-break:break-word !important;
+            vertical-align:middle !important;
+          }
+          .report-wrap{overflow-x:auto}
           CSS
+
+          cat >> app/src/main/assets/www/static/app.js <<'JS'
+
+          /* Android v1.0.5 runtime fixes */
+          const __nhBaseDailyColumnDefs = dailyColumnDefs;
+          dailyColumnDefs = function(){
+            const defs = __nhBaseDailyColumnDefs();
+            return defs.map(def=>{
+              let maxLen = String(def.label||'').length;
+              (dailyData||[]).slice(0,20).forEach(row=>{
+                let value='';
+                if(def.key.startsWith('custom:')) value=row.custom_values?.[def.key.split(':')[1]]||'';
+                else value=row[def.key]??'';
+                maxLen=Math.max(maxLen,String(value).length);
+              });
+              let weight=1.15+Math.min(maxLen,70)/20;
+              if(def.key==='trip_count') weight=.8;
+              else if(def.key==='delivery_datetime') weight=1.1;
+              else if(def.key==='invoice_datetime') weight=Math.max(1.5,weight);
+              else if(def.key==='registered_address') weight=Math.max(2.7,weight);
+              else if(def.key==='company_name'||def.key==='delivery_location_name') weight=Math.max(2.1,weight);
+              return {...def,weight:Math.min(weight,5)};
+            });
+          };
+
+          saveBase64Native = function(filename,mime,b64){
+            try{
+              if(window.Android&&typeof Android.saveBase64==='function'){
+                const r=Android.saveBase64(filename,mime,b64);
+                return String(r||'OK');
+              }
+            }catch(e){toast('Lỗi lưu file: '+e.message);}
+            return '';
+          };
+          shareBase64Native = function(filename,mime,b64){
+            try{
+              if(window.Android&&typeof Android.shareBase64==='function'){
+                const r=Android.shareBase64(filename,mime,b64);
+                return String(r||'OK');
+              }
+            }catch(e){toast('Lỗi chia sẻ: '+e.message);}
+            return '';
+          };
+          downloadDailyPng = function(){
+            if(!dailyData.length){toast('Chưa có dữ liệu báo cáo để lưu');return;}
+            toast('Đang lưu ảnh vào thư viện...');
+            const c=dailyCanvas(),b64=c.toDataURL('image/png').split(',')[1],name=`bao_cao_giao_hang_${dailyDate.value}.png`;
+            const r=saveBase64Native(name,'image/png',b64);
+            if(!r){fallbackDownload(name,'image/png',b64);toast('Đã gửi yêu cầu tải ảnh');}
+            else if(r.startsWith('OK')) toast('Đã lưu ảnh vào Thư viện/Pictures/NHTool');
+            else toast(r);
+          };
+          shareDailyPng = async function(){
+            if(!dailyData.length){toast('Chưa có dữ liệu báo cáo để chia sẻ');return;}
+            toast('Đang chuẩn bị ảnh để chia sẻ...');
+            const c=dailyCanvas(),b64=c.toDataURL('image/png').split(',')[1],name=`bao_cao_giao_hang_${dailyDate.value}.png`;
+            const r=shareBase64Native(name,'image/png',b64);
+            if(!r){
+              const s=saveBase64Native(name,'image/png',b64);
+              if(!s)fallbackDownload(name,'image/png',b64);
+              toast('Không mở được bảng chia sẻ, ảnh đã được lưu');
+            }else if(!r.startsWith('OK')) toast(r);
+          };
+          JS
+
           cat > app/src/main/assets/www/static/logo.svg <<'SVG'
           <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 108 108">
             <path fill="#0D1C33" d="M54 4 98 29v50L54 104 10 79V29Z"/>
@@ -82,21 +156,20 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build signed debug APK
-        run: gradle :app:assembleDebug --stacktrace
+      - name: Build unsigned release APK
+        run: gradle :app:assembleRelease --stacktrace
 
-      - name: Verify APK
+      - name: Verify APK structure
         shell: bash
         run: |
           set -euxo pipefail
-          APK=app/build/outputs/apk/debug/app-debug.apk
+          APK=app/build/outputs/apk/release/app-release-unsigned.apk
           test -s "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -30
 
-      - name: Upload installable APK
+      - name: Upload unsigned APK
         uses: actions/upload-artifact@v4
         with:
-          name: NHTool-v1.0.4-installable
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: NHTool-v1.0.5-unsigned
+          path: app/build/outputs/apk/release/app-release-unsigned.apk
           if-no-files-found: error
