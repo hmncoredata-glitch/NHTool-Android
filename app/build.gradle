@@ -8,13 +8,17 @@ android {
 
     defaultConfig {
         applicationId 'com.nhtool.app'
-        minSdk 26
+        minSdk 21
         targetSdk 35
-        versionCode 102
-        versionName '1.0.2'
+        versionCode 103
+        versionName '1.0.3'
     }
 
     buildTypes {
+        debug {
+            minifyEnabled false
+            shrinkResources false
+        }
         release {
             minifyEnabled false
             shrinkResources false
