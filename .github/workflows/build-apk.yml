@@ -1,5 +1,6 @@
 name: Build NH Tool APK
 
+# Standard Android SDK/Gradle build for NH Tool v1.0.2
 on:
   push:
     branches: [ main ]
