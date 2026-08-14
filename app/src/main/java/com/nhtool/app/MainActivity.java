@@ -5,6 +5,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Intent;
 import android.graphics.Color;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -60,15 +61,23 @@ public class MainActivity extends Activity {
         else super.onBackPressed();
     }
 
-    private Uri writeToDownloads(String filename, String mime, byte[] data) throws Exception {
+    private Uri writeFile(String filename, String mime, byte[] data) throws Exception {
+        boolean isImage = mime != null && mime.startsWith("image/");
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             ContentResolver resolver = getContentResolver();
             ContentValues values = new ContentValues();
             values.put(MediaStore.MediaColumns.DISPLAY_NAME, filename);
             values.put(MediaStore.MediaColumns.MIME_TYPE, mime);
-            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/NHTool");
+            Uri collection;
+            if (isImage) {
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/NHTool");
+                collection = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+            } else {
+                values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS + "/NHTool");
+                collection = MediaStore.Downloads.EXTERNAL_CONTENT_URI;
+            }
             values.put(MediaStore.MediaColumns.IS_PENDING, 1);
-            Uri uri = resolver.insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            Uri uri = resolver.insert(collection, values);
             if (uri == null) throw new IllegalStateException("Không tạo được file");
             try (OutputStream out = resolver.openOutputStream(uri)) {
                 if (out == null) throw new IllegalStateException("Không mở được file");
@@ -79,36 +88,47 @@ public class MainActivity extends Activity {
             resolver.update(uri, done, null, null);
             return uri;
         }
-        File dir = getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS);
-        if (dir == null) dir = getFilesDir();
+
+        File base = Environment.getExternalStoragePublicDirectory(isImage ? Environment.DIRECTORY_PICTURES : Environment.DIRECTORY_DOWNLOADS);
+        File dir = new File(base, "NHTool");
+        if (!dir.exists() && !dir.mkdirs()) throw new IllegalStateException("Không tạo được thư mục NHTool");
         File outFile = new File(dir, filename);
-        try (FileOutputStream out = new FileOutputStream(outFile)) { out.write(data); }
+        try (FileOutputStream out = new FileOutputStream(outFile)) {
+            out.write(data);
+        }
+        MediaScannerConnection.scanFile(this, new String[]{outFile.getAbsolutePath()}, new String[]{mime}, null);
         return Uri.fromFile(outFile);
     }
 
     public class AndroidBridge {
         @JavascriptInterface
-        public void saveBase64(String filename, String mime, String b64) {
+        public String saveBase64(String filename, String mime, String b64) {
             try {
                 byte[] data = Base64.decode(b64, Base64.DEFAULT);
-                writeToDownloads(filename, mime, data);
+                writeFile(filename, mime, data);
                 runOnUiThread(() -> Toast.makeText(MainActivity.this,
-                        "Đã lưu vào Downloads/NHTool: " + filename, Toast.LENGTH_LONG).show());
+                        mime != null && mime.startsWith("image/")
+                                ? "Đã lưu ảnh vào Thư viện/Pictures/NHTool"
+                                : "Đã lưu file vào Downloads/NHTool",
+                        Toast.LENGTH_LONG).show());
+                return "OK";
             } catch (Exception e) {
-                runOnUiThread(() -> Toast.makeText(MainActivity.this,
-                        "Không lưu được file: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                final String msg = "Không lưu được file: " + e.getMessage();
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show());
+                return msg;
             }
         }
 
         @JavascriptInterface
-        public void shareBase64(String filename, String mime, String b64) {
+        public String shareBase64(String filename, String mime, String b64) {
             try {
                 byte[] data = Base64.decode(b64, Base64.DEFAULT);
-                Uri uri = writeToDownloads(filename, mime, data);
+                Uri uri = writeFile(filename, mime, data);
                 if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
                     runOnUiThread(() -> Toast.makeText(MainActivity.this,
-                            "Đã lưu file. Android cũ không hỗ trợ chia sẻ trực tiếp trong bản này.", Toast.LENGTH_LONG).show());
-                    return;
+                            "Ảnh đã lưu vào thư viện. Thiết bị Android cũ có thể cần chia sẻ từ ứng dụng Ảnh.",
+                            Toast.LENGTH_LONG).show());
+                    return "OK_SAVED";
                 }
                 runOnUiThread(() -> {
                     Intent intent = new Intent(Intent.ACTION_SEND);
@@ -117,9 +137,11 @@ public class MainActivity extends Activity {
                     intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
                     startActivity(Intent.createChooser(intent, "Chia sẻ báo cáo"));
                 });
+                return "OK_SHARE";
             } catch (Exception e) {
-                runOnUiThread(() -> Toast.makeText(MainActivity.this,
-                        "Không chia sẻ được file: " + e.getMessage(), Toast.LENGTH_LONG).show());
+                final String msg = "Không chia sẻ được file: " + e.getMessage();
+                runOnUiThread(() -> Toast.makeText(MainActivity.this, msg, Toast.LENGTH_LONG).show());
+                return msg;
             }
         }
     }
