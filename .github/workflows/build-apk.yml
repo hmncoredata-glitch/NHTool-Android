@@ -1,4 +1,4 @@
-name: Build NH Tool APK
+name: Build NH Tool Stable APK
 
 on:
   push:
@@ -21,112 +21,28 @@ jobs:
           base64 -d payload/index.html.gz.b64 | gunzip > app/src/main/assets/www/index.html
           base64 -d payload/app.js.gz.b64 | gunzip > app/src/main/assets/www/static/app.js
           base64 -d payload/style.css.gz.b64 | gunzip > app/src/main/assets/www/static/style.css
+          base64 -d payload/v2_patch.js.gz.b64 | gunzip >> app/src/main/assets/www/static/app.js
 
           cat >> app/src/main/assets/www/static/style.css <<'CSS'
 
-          /* Android mobile bottom navigation + report readability */
+          /* Stable v2 mobile navigation, report grid and custom manager */
           @media(max-width:900px){
-            .bottom-nav{
-              background:#ffffff;
-              border-top:1px solid #d7e0ea;
-              box-shadow:0 -8px 24px rgba(20,45,80,.10);
-            }
-            .bottom-nav .nav-item{
-              color:#5b6b80 !important;
-              background:#ffffff !important;
-              font-weight:650;
-              opacity:1 !important;
-            }
-            .bottom-nav .nav-item:hover{
-              color:#0b6bdb !important;
-              background:#f3f8ff !important;
-            }
-            .bottom-nav .nav-item.active{
-              color:#0b6bdb !important;
-              background:#e8f2ff !important;
-              font-weight:800;
-            }
-            .bottom-nav .nav-item span{
-              color:inherit !important;
-              opacity:1 !important;
-            }
+            .bottom-nav{background:#fff;border-top:1px solid #d7e0ea;box-shadow:0 -8px 24px rgba(20,45,80,.10)}
+            .bottom-nav .nav-item{color:#53657d!important;background:#fff!important;font-weight:700;opacity:1!important}
+            .bottom-nav .nav-item.active{color:#075fbd!important;background:#e6f1ff!important;font-weight:850}
+            .bottom-nav .nav-item span{color:inherit!important;opacity:1!important}
           }
-          .daily-bill .bill-table,.daily-bill .premium-table{
-            width:100% !important;
-            table-layout:auto !important;
-          }
-          .daily-bill .bill-table th,.daily-bill .bill-table td{
-            white-space:normal !important;
-            overflow-wrap:anywhere !important;
-            word-break:break-word !important;
-            vertical-align:middle !important;
-          }
-          .report-wrap{overflow-x:auto}
+          .report-grid-table{width:100%;border-collapse:collapse;table-layout:fixed}
+          .report-grid-table th,.report-grid-table td{border:1px solid rgba(105,130,160,.30)!important;text-align:center!important;vertical-align:middle!important;white-space:normal!important;overflow-wrap:anywhere!important;word-break:break-word!important;line-height:1.35}
+          .report-grid-table th{background:#dce9f8!important;color:#173b63!important;font-weight:800}
+          .report-grid-table tbody tr:nth-child(even){background:#f8fbff}
+          .report-grid-table .company-cell{font-weight:850}
+          .report-table-scroll,.report-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+          .premium-table{min-width:760px}.data-table.report-grid-table{min-width:880px}
+          .history-company{font-size:15px;font-weight:850;color:#132238}.history-address{font-size:13px;color:#42536a;margin-top:5px}
+          .manager-row{grid-template-columns:36px 1fr auto}.field-actions{display:flex;gap:6px}.small-btn{padding:7px 10px;font-size:12px}.compact-title{margin-top:18px}.compact-empty{padding:18px 8px}.custom-manager-existing{margin-top:12px}.profile-import{width:100%;margin-top:8px}
+          @media(max-width:900px){.premium-table{min-width:900px}.data-table.report-grid-table{min-width:940px}.manager-row{grid-template-columns:32px 1fr}.field-actions{grid-column:2;justify-content:flex-end}.report-grid-table th,.report-grid-table td{font-size:10px}}
           CSS
-
-          cat >> app/src/main/assets/www/static/app.js <<'JS'
-
-          /* Android v1.0.6 runtime fixes */
-          const __nhBaseDailyColumnDefs = dailyColumnDefs;
-          dailyColumnDefs = function(){
-            const defs = __nhBaseDailyColumnDefs();
-            return defs.map(def=>{
-              let maxLen = String(def.label||'').length;
-              (dailyData||[]).slice(0,20).forEach(row=>{
-                let value='';
-                if(def.key.startsWith('custom:')) value=row.custom_values?.[def.key.split(':')[1]]||'';
-                else value=row[def.key]??'';
-                maxLen=Math.max(maxLen,String(value).length);
-              });
-              let weight=1.15+Math.min(maxLen,70)/20;
-              if(def.key==='trip_count') weight=.8;
-              else if(def.key==='delivery_datetime') weight=1.1;
-              else if(def.key==='invoice_datetime') weight=Math.max(1.5,weight);
-              else if(def.key==='registered_address') weight=Math.max(2.7,weight);
-              else if(def.key==='company_name'||def.key==='delivery_location_name') weight=Math.max(2.1,weight);
-              return {...def,weight:Math.min(weight,5)};
-            });
-          };
-
-          saveBase64Native = function(filename,mime,b64){
-            try{
-              if(window.Android&&typeof Android.saveBase64==='function'){
-                const r=Android.saveBase64(filename,mime,b64);
-                return String(r||'OK');
-              }
-            }catch(e){toast('Lỗi lưu file: '+e.message);}
-            return '';
-          };
-          shareBase64Native = function(filename,mime,b64){
-            try{
-              if(window.Android&&typeof Android.shareBase64==='function'){
-                const r=Android.shareBase64(filename,mime,b64);
-                return String(r||'OK');
-              }
-            }catch(e){toast('Lỗi chia sẻ: '+e.message);}
-            return '';
-          };
-          downloadDailyPng = function(){
-            if(!dailyData.length){toast('Chưa có dữ liệu báo cáo để lưu');return;}
-            toast('Đang lưu ảnh vào thư viện...');
-            const c=dailyCanvas(),b64=c.toDataURL('image/png').split(',')[1],name=`bao_cao_giao_hang_${dailyDate.value}.png`;
-            const r=saveBase64Native(name,'image/png',b64);
-            if(!r){fallbackDownload(name,'image/png',b64);toast('Đã gửi yêu cầu tải ảnh');}
-            else if(r.startsWith('OK')) toast('Đã lưu ảnh vào Thư viện/Pictures/NHTool');
-            else toast(r);
-          };
-          shareDailyPng = async function(){
-            if(!dailyData.length){toast('Chưa có dữ liệu báo cáo để chia sẻ');return;}
-            toast('Đang chuẩn bị ảnh để chia sẻ...');
-            const c=dailyCanvas(),b64=c.toDataURL('image/png').split(',')[1],name=`bao_cao_giao_hang_${dailyDate.value}.png`;
-            const r=shareBase64Native(name,'image/png',b64);
-            if(!r){
-              const s=saveBase64Native(name,'image/png',b64);
-              if(!s)fallbackDownload(name,'image/png',b64);
-              toast('Không mở được bảng chia sẻ, ảnh đã được lưu');
-            }else if(!r.startsWith('OK')) toast(r);
-          };
-          JS
 
           cat > app/src/main/assets/www/static/logo.svg <<'SVG'
           <svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 108 108">
@@ -135,8 +51,8 @@ jobs:
             <path fill="#0D1C33" d="M30 36h10l14 22V36h10v36H54L40 50v22H30Zm36 0h10v13h8V36h10v36H84V59h-8v13H66Z"/>
           </svg>
           SVG
+          node --check app/src/main/assets/www/static/app.js
           test -s app/src/main/assets/www/index.html
-          test -s app/src/main/assets/www/static/app.js
           test -s app/src/main/assets/www/static/style.css
 
       - name: Set up JDK 17
@@ -156,21 +72,27 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Build signed debug APK
-        run: gradle :app:assembleDebug --stacktrace
+      - name: Build unsigned stable APK
+        run: gradle :app:assembleRelease --stacktrace
 
-      - name: Verify signed APK
+      - name: Verify APK structure
         shell: bash
         run: |
           set -euxo pipefail
-          APK=app/build/outputs/apk/debug/app-debug.apk
+          APK=app/build/outputs/apk/release/app-release-unsigned.apk
           test -s "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -30
+          mkdir -p signing-tools/lib
+          cp "$ANDROID_HOME/build-tools/35.0.0/apksigner" signing-tools/
+          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" signing-tools/
+          cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" signing-tools/lib/
+          tar -czf signing-tools.tar.gz signing-tools
 
-      - name: Upload installable APK
+      - name: Upload unsigned APK and signing tools
         uses: actions/upload-artifact@v4
         with:
-          name: NHTool-v1.0.6-installable
-          path: app/build/outputs/apk/debug/app-debug.apk
+          name: NHTool-Stable-v2.0.0-build
+          path: |
+            app/build/outputs/apk/release/app-release-unsigned.apk
+            signing-tools.tar.gz
           if-no-files-found: error
