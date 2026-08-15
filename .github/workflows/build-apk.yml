@@ -22,7 +22,7 @@ jobs:
           base64 -d payload/app.js.gz.b64 | gunzip > app/src/main/assets/www/static/app.js
           base64 -d payload/style.css.gz.b64 | gunzip > app/src/main/assets/www/static/style.css
           base64 -d payload/v2_patch.js.gz.b64 | gunzip >> app/src/main/assets/www/static/app.js
-          base64 -d payload/v2_2_patch.js.gz.b64 | gunzip >> app/src/main/assets/www/static/app.js
+          cat payload/v2_2_patch.part*.b64 | base64 -d | gunzip >> app/src/main/assets/www/static/app.js
 
           cat >> app/src/main/assets/www/static/style.css <<'CSS'
 
