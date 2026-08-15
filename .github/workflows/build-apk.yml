@@ -22,11 +22,10 @@ jobs:
           base64 -d payload/app.js.gz.b64 | gunzip > app/src/main/assets/www/static/app.js
           base64 -d payload/style.css.gz.b64 | gunzip > app/src/main/assets/www/static/style.css
           base64 -d payload/v2_patch.js.gz.b64 | gunzip >> app/src/main/assets/www/static/app.js
-          cat payload/v2_1_patch.part*.b64 | base64 -d | gunzip >> app/src/main/assets/www/static/app.js
 
           cat >> app/src/main/assets/www/static/style.css <<'CSS'
 
-          /* Stable v2 mobile navigation, report grid and custom manager */
+          /* Stable v2 mobile navigation and report grid */
           @media(max-width:900px){
             .bottom-nav{background:#fff;border-top:1px solid #d7e0ea;box-shadow:0 -8px 24px rgba(20,45,80,.10)}
             .bottom-nav .nav-item{color:#53657d!important;background:#fff!important;font-weight:700;opacity:1!important}
@@ -41,8 +40,7 @@ jobs:
           .report-table-scroll,.report-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
           .premium-table{min-width:760px}.data-table.report-grid-table{min-width:880px}
           .history-company{font-size:15px;font-weight:850;color:#132238}.history-address{font-size:13px;color:#42536a;margin-top:5px}
-          .manager-row{grid-template-columns:36px 1fr auto}.field-actions{display:flex;gap:6px}.small-btn{padding:7px 10px;font-size:12px}.compact-title{margin-top:18px}.compact-empty{padding:18px 8px}.custom-manager-existing{margin-top:12px}.profile-import{width:100%;margin-top:8px}
-          @media(max-width:900px){.premium-table{min-width:900px}.data-table.report-grid-table{min-width:940px}.manager-row{grid-template-columns:32px 1fr}.field-actions{grid-column:2;justify-content:flex-end}.report-grid-table th,.report-grid-table td{font-size:10px}}
+          @media(max-width:900px){.premium-table{min-width:900px}.data-table.report-grid-table{min-width:940px}.report-grid-table th,.report-grid-table td{font-size:10px}}
           CSS
 
           cat > app/src/main/assets/www/static/logo.svg <<'SVG'
@@ -92,7 +90,7 @@ jobs:
       - name: Upload unsigned APK and signing tools
         uses: actions/upload-artifact@v4
         with:
-          name: NHTool-Stable-v2.0.1-build
+          name: NHTool-Stable-v2.0.2-build
           path: |
             app/build/outputs/apk/release/app-release-unsigned.apk
             signing-tools.tar.gz
