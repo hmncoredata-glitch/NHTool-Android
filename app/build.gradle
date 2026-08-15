@@ -10,8 +10,8 @@ android {
         applicationId 'com.nhtool.stable'
         minSdk 21
         targetSdk 35
-        versionCode 201
-        versionName '2.0.1'
+        versionCode 202
+        versionName '2.0.2'
     }
 
     buildTypes {
