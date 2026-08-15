@@ -24,6 +24,7 @@ jobs:
           base64 -d payload/v2_patch.js.gz.b64 | gunzip >> app/src/main/assets/www/static/app.js
           cat payload/v2_2_patch.gz.part* | gunzip >> app/src/main/assets/www/static/app.js
           cat payload/v2_3_fix.js >> app/src/main/assets/www/static/app.js
+          cat payload/v2_4_fix.js >> app/src/main/assets/www/static/app.js
 
           cat >> app/src/main/assets/www/static/style.css <<'CSS'
 
@@ -84,8 +85,8 @@ jobs:
           test -s app/src/main/assets/www/static/style.css
           grep -q "nhtool_report_prefs_v202" app/src/main/assets/www/static/app.js
           grep -q "Thực nhận = Tổng tiền - phí khấu trừ" app/src/main/assets/www/static/app.js
-          grep -q "v2.0.3: prevent report dashboard" app/src/main/assets/www/static/style.css
           grep -q "NH Tool Stable v2.0.3 hotfix" app/src/main/assets/www/static/app.js
+          grep -q "NH Tool Stable v2.0.4" app/src/main/assets/www/static/app.js
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -123,7 +124,7 @@ jobs:
       - name: Upload unsigned APK and signing tools
         uses: actions/upload-artifact@v4
         with:
-          name: NHTool-Stable-v2.0.3-build
+          name: NHTool-Stable-v2.0.4-build
           path: |
             app/build/outputs/apk/release/app-release-unsigned.apk
             signing-tools.tar.gz
