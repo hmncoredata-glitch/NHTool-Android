@@ -42,6 +42,33 @@ jobs:
           .premium-table{min-width:760px}.data-table.report-grid-table{min-width:880px}
           .history-company{font-size:15px;font-weight:850;color:#132238}.history-address{font-size:13px;color:#42536a;margin-top:5px}
           @media(max-width:900px){.premium-table{min-width:900px}.data-table.report-grid-table{min-width:940px}.report-grid-table th,.report-grid-table td{font-size:10px}}
+
+          /* v2.0.3: prevent report dashboard cards from expanding the mobile viewport */
+          html,body{max-width:100%;overflow-x:hidden}
+          #page-report,.nh-report-overview,.nh-dashboard-grid,.nh-stat-card{min-width:0;max-width:100%}
+          .nh-dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
+          .nh-stat-card{overflow:hidden}
+          .nh-stat-card>div:not(.nh-stat-icon){min-width:0;max-width:100%;flex:1 1 auto}
+          .nh-stat-card strong{max-width:100%;white-space:nowrap;overflow:hidden;text-overflow:clip}
+          @media(max-width:620px){
+            .nh-report-overview{width:100%;overflow:hidden}
+            .nh-dashboard-grid{gap:8px}
+            .nh-stat-card{padding:10px;gap:7px;min-height:86px}
+            .nh-stat-icon{width:32px!important;height:32px!important;flex:0 0 32px!important;font-size:16px!important}
+            .nh-stat-card small{font-size:10.5px!important;line-height:1.2}
+            #dashboardGross,#dashboardNet{font-size:clamp(14px,3.8vw,17px)!important;letter-spacing:-.03em}
+            #dashboardOrders{font-size:22px!important}
+            .nh-deduction-row{gap:2px!important}
+            .nh-deduction-row input{width:48px!important;font-size:20px!important}
+            .nh-deduction-row b{font-size:18px!important}
+            .nh-deduction-content em{font-size:9.5px!important;white-space:nowrap}
+          }
+          @media(max-width:350px){
+            .nh-dashboard-grid{gap:6px}
+            .nh-stat-card{padding:8px;gap:5px}
+            .nh-stat-icon{width:28px!important;height:28px!important;flex-basis:28px!important;font-size:14px!important}
+            #dashboardGross,#dashboardNet{font-size:13px!important}
+          }
           CSS
 
           cat > app/src/main/assets/www/static/logo.svg <<'SVG'
@@ -56,6 +83,7 @@ jobs:
           test -s app/src/main/assets/www/static/style.css
           grep -q "nhtool_report_prefs_v202" app/src/main/assets/www/static/app.js
           grep -q "Thực nhận = Tổng tiền - phí khấu trừ" app/src/main/assets/www/static/app.js
+          grep -q "v2.0.3: prevent report dashboard" app/src/main/assets/www/static/style.css
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -93,7 +121,7 @@ jobs:
       - name: Upload unsigned APK and signing tools
         uses: actions/upload-artifact@v4
         with:
-          name: NHTool-Stable-v2.0.2-build
+          name: NHTool-Stable-v2.0.3-build
           path: |
             app/build/outputs/apk/release/app-release-unsigned.apk
             signing-tools.tar.gz
