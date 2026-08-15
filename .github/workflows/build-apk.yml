@@ -22,6 +22,7 @@ jobs:
           base64 -d payload/app.js.gz.b64 | gunzip > app/src/main/assets/www/static/app.js
           base64 -d payload/style.css.gz.b64 | gunzip > app/src/main/assets/www/static/style.css
           base64 -d payload/v2_patch.js.gz.b64 | gunzip >> app/src/main/assets/www/static/app.js
+          base64 -d payload/v2_1_patch.js.gz.b64 | gunzip >> app/src/main/assets/www/static/app.js
 
           cat >> app/src/main/assets/www/static/style.css <<'CSS'
 
@@ -91,7 +92,7 @@ jobs:
       - name: Upload unsigned APK and signing tools
         uses: actions/upload-artifact@v4
         with:
-          name: NHTool-Stable-v2.0.0-build
+          name: NHTool-Stable-v2.0.1-build
           path: |
             app/build/outputs/apk/release/app-release-unsigned.apk
             signing-tools.tar.gz
