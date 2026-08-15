@@ -21,9 +21,13 @@
             </intent-filter>
         </activity>
         <provider
-            android:name=".ShareFileProvider"
-            android:authorities="com.nhtool.stable.sharefiles"
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="com.nhtool.stable.fileprovider"
             android:exported="false"
-            android:grantUriPermissions="true" />
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
     </application>
 </manifest>
