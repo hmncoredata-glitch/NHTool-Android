@@ -45,7 +45,6 @@ jobs:
           .history-company{font-size:15px;font-weight:850;color:#132238}.history-address{font-size:13px;color:#42536a;margin-top:5px}
           @media(max-width:900px){.premium-table{min-width:900px}.data-table.report-grid-table{min-width:940px}.report-grid-table th,.report-grid-table td{font-size:10px}}
 
-          /* v2.0.3: prevent report dashboard cards from expanding the mobile viewport */
           html,body{max-width:100%;overflow-x:hidden}
           #page-report,.nh-report-overview,.nh-dashboard-grid,.nh-stat-card{min-width:0;max-width:100%}
           .nh-dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr));width:100%}
@@ -108,24 +107,26 @@ jobs:
       - name: Build unsigned stable APK
         run: gradle :app:assembleRelease --stacktrace
 
-      - name: Verify APK structure
+      - name: Align and verify APK structure
         shell: bash
         run: |
           set -euxo pipefail
           APK=app/build/outputs/apk/release/app-release-unsigned.apk
+          ALIGNED=app/build/outputs/apk/release/NHTool-Stable-v2.0.4-aligned-unsigned.apk
           test -s "$APK"
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$APK" | head -30
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -f -p 4 "$APK" "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/zipalign" -c -v 4 "$ALIGNED"
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging "$ALIGNED" | head -30
           mkdir -p signing-tools/lib
           cp "$ANDROID_HOME/build-tools/35.0.0/apksigner" signing-tools/
-          cp "$ANDROID_HOME/build-tools/35.0.0/zipalign" signing-tools/
           cp "$ANDROID_HOME/build-tools/35.0.0/lib/apksigner.jar" signing-tools/lib/
           tar -czf signing-tools.tar.gz signing-tools
 
-      - name: Upload unsigned APK and signing tools
+      - name: Upload aligned APK and signing tools
         uses: actions/upload-artifact@v4
         with:
-          name: NHTool-Stable-v2.0.4-build
+          name: NHTool-Stable-v2.0.4-aligned-build
           path: |
-            app/build/outputs/apk/release/app-release-unsigned.apk
+            app/build/outputs/apk/release/NHTool-Stable-v2.0.4-aligned-unsigned.apk
             signing-tools.tar.gz
           if-no-files-found: error
